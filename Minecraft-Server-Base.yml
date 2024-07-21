@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Minecraftサーバーの基盤を構築するCloudFormationテンプレート
+Description: Building a Minecraft Server Base
 
 Resources:
   VPC:
@@ -17,7 +17,7 @@ Resources:
         - Key: Name
           Value: minecraft-server-igw
 
-  VPCGatewayAttach:
+  VPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       VpcId: !Ref VPC
@@ -29,6 +29,9 @@ Resources:
       AvailabilityZone: ap-northeast-1a
       VpcId: !Ref VPC
       CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: minecraft-server-subnet
 
   PubSubRT:
     Type: AWS::EC2::RouteTable
@@ -45,13 +48,13 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref IGW
 
-  AssoPubSubRT:
+  AssociatePubSubToRT:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PubSub
       RouteTableId: !Ref PubSubRT
 
-  EC2SG:
+  SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: ec2-sg-cf
@@ -66,7 +69,7 @@ Resources:
         - Key: Name
           Value: minecraft-server-sg
 
-  SSMRole:
+  MinecraftServerAccessRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -90,13 +93,13 @@ Outputs:
     Value: !Ref PubSub
     Export:
       Name: "minecraft-server-public-subnet"
-  EC2SG:
+  SecurityGroup:
     Description: EC2 Security Group
     Value: !Ref EC2SG
     Export:
       Name: "minecraft-server-ec2-security-group"
-  SSMRole:
-    Description: Systems Mangager Access Role
-    Value: !Ref SSMRole
+  MinecraftServerAccessRole:
+    Description: Session Mangager Access Role
+    Value: !Ref MinecraftServerAccessRole
     Export:
       Name: "minecraft-server-iam-role"

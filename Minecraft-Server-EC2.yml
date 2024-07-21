@@ -1,16 +1,19 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Minecraftサーバーを構築するCloudFormationテンプレート
+Description: Building a Minecraft Server
 
 Parameters:
   MinecraftServerUrl:
     Type: String
     Default: https://piston-data.mojang.com/v1/objects/84194a2f286ef7c14ed7ce0090dba59902951553/server.jar
+    Description: Minecraft Server Download URL
   JavaVersion:
     Type: String
     Default: 17
+    Description: Java version
   MemorySize:
     Type: String
     Default: 1300M
+    Description: Server Memory Size
 
 Resources:
   InstanceProfile:

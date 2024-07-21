@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Minecraftサーバーの基盤を構築するCloudFormationテンプレート
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: minecraft-server-vpc
+
+  IGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: minecraft-server-igw
+
+  VPCGatewayAttach:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref IGW
+
+  PubSub:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-northeast-1a
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.0/16
+
+  PubSubRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: minecraft-server-rt
+
+  PubSubToInternet:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PubSubRT
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref IGW
+
+  AssoPubSubRT:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PubSub
+      RouteTableId: !Ref PubSubRT
+
+  EC2SG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: ec2-sg-cf
+      GroupDescription: Allow SSH and HTTP access only MyIP
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 25565
+          ToPort: 25565
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: Name
+          Value: minecraft-server-sg
+
+  SSMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+      - Key: Name
+        Value: minecraft-server-iam-role
+
+Outputs:
+  PubSub:
+    Description: Public Subnet
+    Value: !Ref PubSub
+    Export:
+      Name: "minecraft-server-public-subnet"
+  EC2SG:
+    Description: EC2 Security Group
+    Value: !Ref EC2SG
+    Export:
+      Name: "minecraft-server-ec2-security-group"
+  SSMRole:
+    Description: Systems Mangager Access Role
+    Value: !Ref SSMRole
+    Export:
+      Name: "minecraft-server-iam-role"

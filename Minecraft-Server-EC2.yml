@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Minecraftサーバーを構築するCloudFormationテンプレート
+
+Parameters:
+  MinecraftServerUrl:
+    Type: String
+    Default: https://piston-data.mojang.com/v1/objects/84194a2f286ef7c14ed7ce0090dba59902951553/server.jar
+  JavaVersion:
+    Type: String
+    Default: 17
+  MemorySize:
+    Type: String
+    Default: 1300M
+
+Resources:
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - !ImportValue "minecraft-server-iam-role"
+  EC2: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: ami-0ad215c298e692194
+      InstanceType: t4g.small
+      IamInstanceProfile: !Ref InstanceProfile
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          SubnetId: !ImportValue "minecraft-server-public-subnet"
+          GroupSet: 
+            - !ImportValue "minecraft-server-ec2-security-group"
+      UserData:
+        "Fn::Base64": !Sub |
+          #!/bin/bash
+
+          sudo dnf install -y java-${JavaVersion}-amazon-corretto-headless
+          sudo adduser minecraft
+          sudo mkdir /opt/minecraft/
+          sudo mkdir /opt/minecraft/server/
+          cd /opt/minecraft/server
+
+          sudo wget ${MinecraftServerUrl}
+
+          sudo chown -R minecraft:minecraft /opt/minecraft/
+          sudo java -Xmx1300M -Xms1300M -jar server.jar nogui
+          sleep 40
+          sed -i 's/false/true/p' eula.txt
+          touch start
+          printf '#!/bin/bash\njava -Xmx${MemorySize} -Xms${MemorySize} -jar server.jar nogui\n' | sudo tee -a start
+          sudo chmod +x start
+          sleep 1
+          sudo touch stop
+          printf '#!/bin/bash\nkill -9 $(ps -ef | pgrep -f "java")' | sudo tee -a stop
+          sudo chmod +x stop
+          sleep 1
+
+          cd /etc/systemd/system/
+          sudo touch minecraft.service
+          printf '[Unit]\nDescription=Minecraft Server on start up\nWants=network-online.target\n[Service]\nUser=minecraft\nWorkingDirectory=/opt/minecraft/server\nExecStart=/opt/minecraft/server/start\nStandardInput=null\n[Install]\nWantedBy=multi-user.target' | sudo tee -a minecraft.service
+          sudo systemctl daemon-reload
+          sudo systemctl enable minecraft.service
+          sudo systemctl start minecraft.service
+      Tags:
+        - Key: Name
+          Value: minecraft-server-instance

@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Minecraftサーバーを自動停止するCloudFormationテンプレート
+
+Parameters:
+  InstanceId:
+    Type: AWS::EC2::Instance::Id
+  ScheduleStopTime:
+    Type: String
+    Default: "cron(0 3 * * ? *)"
+  ScheduleTimezone:
+    Type: String
+    Default: Japan
+
+Resources:
+  ScheduleEC2Stop:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: "minecraft-server-stop-scheduler"
+      Description: Stop EC2 Instance
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      ScheduleExpression: !Ref ScheduleStopTime 
+      ScheduleExpressionTimezone: !Ref ScheduleTimezone
+      State: ENABLED
+      Target:
+        Arn: arn:aws:scheduler:::aws-sdk:ec2:stopInstances
+        Input: !Sub |-
+          {
+            "InstanceIds": ["${InstanceId}"]
+          }
+        RoleArn:
+          Fn::GetAtt:
+          - SchedulerEC2StopRole
+          - Arn
+  SchedulerEC2StopRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - scheduler.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: EC2StopStart
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:StartInstances
+                Resource:
+                  - "*"

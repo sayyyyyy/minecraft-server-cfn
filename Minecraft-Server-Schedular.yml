@@ -11,7 +11,7 @@ Parameters:
     Description: Time to stop the EC2 Instance
   ScheduleTimezone:
     Type: String
-    Default: Japan
+    Default: Asia/Tokyo
     Description: Schedule timezone
 
 Resources:
@@ -32,7 +32,7 @@ Resources:
           }
         RoleArn:
           Fn::GetAtt:
-          - SchedulerEC2StopRole
+          - SchedulerToStopEC2Role
           - Arn
   SchedulerToStopEC2Role:
     Type: AWS::IAM::Role
@@ -48,12 +48,12 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       Policies:
-        - PolicyName: EC2StopStart
+        - PolicyName: EC2Stop
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
-                  - ec2:StartInstances
+                  - ec2:StopInstances
                 Resource:
                   - "*"

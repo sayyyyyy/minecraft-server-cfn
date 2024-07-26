@@ -95,7 +95,7 @@ Outputs:
       Name: "minecraft-server-public-subnet"
   SecurityGroup:
     Description: EC2 Security Group
-    Value: !Ref EC2SG
+    Value: !Ref SecurityGroup
     Export:
       Name: "minecraft-server-ec2-security-group"
   MinecraftServerAccessRole:

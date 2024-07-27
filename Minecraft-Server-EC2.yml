@@ -9,7 +9,17 @@ Parameters:
   JavaVersion:
     Type: String
     Default: 17
-    Description: Java version
+    AllowedValues:
+      - 11
+      - 16
+      - 17
+      - 21
+    Description: |
+      Java version
+      ~1.16: Java11
+      1.17~: Java16
+      1.18~: Java17
+      1.20.5~: Java21
   MemorySize:
     Type: String
     Default: 1300M
